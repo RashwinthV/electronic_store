@@ -1,5 +1,5 @@
 import { jwtDecode } from "jwt-decode";
-import { jwtVerify } from "jose"; // JWT validation
+import { jwtVerify } from "jose"; 
 
 async function login(username, password) {
   try {
@@ -24,7 +24,6 @@ async function login(username, password) {
 
       const publicKeyData = await publicKeyResponse.json();
 
-      // Validate the token with the public key
       const isValid = await validateTokenWithPublicKey(
         data.access_token,
         publicKeyData
@@ -42,7 +41,6 @@ async function login(username, password) {
   }
 }
 
-// Function to validate token using public key
 async function validateTokenWithPublicKey(token, publicKeyData) {
   try {
     const { keys } = publicKeyData;

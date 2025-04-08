@@ -1,53 +1,62 @@
-import React, { useContext, useEffect, useState } from "react";
-import Logo from "./Logo";
+import React, { useEffect, useState } from "react";
 import { GrSearch } from "react-icons/gr";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { FaShoppingCart } from "react-icons/fa";
+import { FaBoxOpen } from "react-icons/fa";
+
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import Context from "../context";
 import SummaryApi from "../common";
 import { useDispatch } from "react-redux";
 import { setUserDetails } from "../store/userSlice";
 
 const Header = () => {
   const [search, setSearch] = useState("");
-  const context = useContext(Context);
+  const [user, setUser] = useState(null);
+  const [activeImage, setActiveImage] = useState("");
+  const [cartCount, setCartCount] = useState(
+    localStorage.getItem("cartCount") || 0
+  );
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [user, setUser] = useState("");
-  const email = localStorage.getItem("email");
-  var roll=user.role||"general"
-  localStorage.setItem("role",roll)
-  const urlParams = new URLSearchParams(window.location.search);
-  const encodedEmail = urlParams.get("email");
 
-  if (encodedEmail) {
-    const decodedEmail = decodeURIComponent(encodedEmail);
-    localStorage.setItem("email", decodedEmail);
-  }
+  const email = localStorage.getItem("email");
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const encodedEmail = urlParams.get("email");
+
+    if (encodedEmail) {
+      const decodedEmail = decodeURIComponent(encodedEmail);
+      localStorage.setItem("email", decodedEmail);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchUserDetails = async () => {
       if (!email) return;
 
       try {
-        const apiUrl = `${
-          SummaryApi.current_user.url
-        }?email=${encodeURIComponent(email)}`;
-        const response = await fetch(apiUrl, {
-          method: SummaryApi.current_user.method,
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
+        const response = await fetch(
+          `${SummaryApi.current_user.url}?email=${encodeURIComponent(email)}`,
+          {
+            method: SummaryApi.current_user.method,
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`Error: ${response.status} ${response.statusText}`);
         }
 
-        const dataApi = await response.json();
-        if (dataApi) {
-          dispatch(setUserDetails(dataApi));
-          setUser(dataApi); 
+        const data = await response.json();
+        if (data) {
+          dispatch(setUserDetails(data));
+          setUser(data);
+          localStorage.setItem("userId", data._id);
+          
         }
       } catch (error) {
         console.error("Failed to fetch user details:", error);
@@ -58,21 +67,49 @@ const Header = () => {
     fetchUserDetails();
   }, [email, dispatch]);
 
+  useEffect(() => {
+    if (user?.profilePic) {
+      try {
+        const imageUrl = user.profilePic;
+        const url = new URL(imageUrl);
+        const fileId = url.searchParams.get("id");
+        setActiveImage(
+          fileId
+            ? `${process.env.REACT_APP_IMAGE_URL}/proxy-image?fileId=${fileId}`
+            : imageUrl
+        );
+      } catch (error) {
+        console.error("Invalid image URL:", error);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      setCartCount(localStorage.getItem("cartCount") || 0);
+    };
+
+    window.addEventListener("storage", updateCartCount);
+    return () => window.removeEventListener("storage", updateCartCount);
+  }, []);
+
   const handleSearch = (e) => {
     const { value } = e.target;
-    setSearch(value);
+    setSearch(value.trim());
 
-    if (value) {
-      navigate(`/search?q=${value}`);
+    if (value.trim()) {
+      navigate(`/search?q=${value.trim()}`);
     } else {
-      navigate("/search");
+      navigate("/");
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("email");
+    localStorage.removeItem("cartCount");
+    localStorage.removeItem("userId")
     dispatch(setUserDetails(null));
-    setUser(null); 
+    setUser(null);
     toast.success("Logout successful!");
     navigate("/");
   };
@@ -80,16 +117,19 @@ const Header = () => {
   return (
     <header className="h-16 shadow-md bg-white fixed w-full z-40">
       <div className="h-full container mx-auto flex items-center px-4 justify-between">
-        <div>
-          <Link to={"/"}>
-            <Logo w={90} h={50} />
-          </Link>
-        </div>
+        {/* Logo */}
+        <Link
+          to={"/"}
+          className="text-2xl font-extrabold tracking-wide text-blue-600"
+        >
+          MCA<span className="text-gray-700">Electronics</span>
+        </Link>
 
+        {/* Search Box */}
         <div className="hidden lg:flex items-center w-full justify-between max-w-sm border rounded-full focus-within:shadow pl-2">
           <input
             type="text"
-            placeholder="search product here..."
+            placeholder="Search product here..."
             className="w-full outline-none"
             onChange={handleSearch}
             value={search}
@@ -99,49 +139,55 @@ const Header = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-7">
-          {/* Profile section */}
+        {/* Desktop Menu */}
+        <div className="hidden lg:flex items-center gap-7">
+          {/* Orders */}
+
+          {/* Profile */}
           <div
-            className="relative flex justify-center"
+            className="relative flex justify-center cursor-pointer"
             onClick={() => navigate("/profile")}
           >
             {user?.profilePic ? (
               <img
-                src={user?.profilePic}
+                src={activeImage}
                 className="w-10 h-10 rounded-full"
                 alt={user?.name}
               />
             ) : (
-              <FaRegCircleUser />
+              <FaRegCircleUser className="text-2xl" />
             )}
-          
           </div>
 
           {/* Cart */}
           {user && (
             <Link to={"/cart"} className="text-2xl relative">
-              <span>
-                <FaShoppingCart />
-              </span>
+              <FaShoppingCart />
               <div className="bg-red-600 text-white w-5 h-5 rounded-full p-1 flex items-center justify-center absolute -top-2 -right-3">
-                <p className="text-sm">{context?.cartProductCount}</p>
+                <p className="text-sm">{cartCount}</p>
               </div>
             </Link>
           )}
-
-          {/* Admin Role */}
-          {user?.role === "ADMIN" && (
-            <p>
-              <Link
-                to={"/admin-panel/all-products"}
-                className="whitespace-nowrap hidden md:block hover:bg-slate-100 p-2"
-              >
-                Admin Panel
-              </Link>
-            </p>
+          {user && (
+            <Link
+              to={"/orders"}
+              className="hover:bg-slate-100 p-2 flex items-center gap-1"
+            >
+              <FaBoxOpen className="text-lg" />
+            </Link>
           )}
 
-          {/* Logout or Login button */}
+          {/* Admin Panel Link */}
+          {user?.role === "ADMIN" && (
+            <Link
+              to={"/admin-panel/Dashboard"}
+              className="whitespace-nowrap hover:bg-slate-100 p-2"
+            >
+              Admin Panel
+            </Link>
+          )}
+
+          {/* Login / Logout */}
           <div>
             {user ? (
               <button
@@ -160,7 +206,77 @@ const Header = () => {
             )}
           </div>
         </div>
+
+        {/* Mobile Hamburger */}
+        <div
+          className="lg:hidden cursor-pointer text-2xl"
+          onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          &#9776;
+        </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-white shadow-md absolute top-16 left-0 w-full z-50 flex flex-col gap-4 p-4">
+          <Link
+            to={"/profile"}
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex gap-2 items-center"
+          >
+            {" "}
+            <FaRegCircleUser className="text-2xl" />
+            Profile
+          </Link>
+          {user && (
+            <Link
+              to={"/orders"}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex gap-2 items-center"
+            >
+              {" "}
+              <FaBoxOpen />
+              Orders
+            </Link>
+          )}
+          {user && (
+            <Link
+              to={"/cart"}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex gap-2 items-center"
+            >
+              <FaShoppingCart />
+              Cart{" "}
+              <span className="bg-red-600 text-white px-2 py-0.5 rounded-full text-sm">
+                {cartCount}
+              </span>
+            </Link>
+          )}
+          {user?.role === "ADMIN" && (
+            <Link
+              to={"/admin-panel/Dashboard"}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Admin Panel
+            </Link>
+          )}
+          {user ? (
+            <button
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
+              }}
+              className="text-left text-red-600"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link to={"/login"} onClick={() => setMobileMenuOpen(false)}>
+              Login
+            </Link>
+          )}
+        </div>
+      )}
     </header>
   );
 };

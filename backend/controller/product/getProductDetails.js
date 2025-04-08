@@ -1,6 +1,6 @@
 const productModel = require("../../models/productModel")
 
-const getProductDetails = async(req,res)=>{
+exports.getProductDetails = async(req,res)=>{
     try{
         const { productId } = req.body
 
@@ -23,4 +23,3 @@ const getProductDetails = async(req,res)=>{
     }
 }
 
-module.exports = getProductDetails

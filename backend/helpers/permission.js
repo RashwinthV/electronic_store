@@ -1,7 +1,7 @@
 const userModel = require("../models/userModel")
 
-const uploadProductPermission = async() => {
-    const userid=localStorage.getItem('email')
+const uploadProductPermission = async(email) => {
+    const userid=email
     const user = await userModel.findById(userid)
 
     if(user.role === 'ADMIN'){

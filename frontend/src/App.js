@@ -1,4 +1,3 @@
-import logo from "./logo.svg";
 import "./App.css";
 import { Outlet } from "react-router-dom";
 import Header from "./components/Header";
@@ -72,7 +71,7 @@ const App = () => {
     // Fetch user details and cart product count in parallel
     fetchUserDetails();
     fetchUserAddToCart();
-  }, []); // Runs once on mount
+  }); // Runs once on mount
 
   return (
     <>
@@ -90,6 +89,7 @@ const App = () => {
         </main>
         <Footer />
       </Context.Provider>
+      
     </>
   );
 };

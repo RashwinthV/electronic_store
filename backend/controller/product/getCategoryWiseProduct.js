@@ -1,6 +1,6 @@
 const productModel = require("../../models/productModel")
 
-const getCategoryWiseProduct = async(req,res)=>{
+exports.getCategoryWiseProduct = async(req,res)=>{
     try{
         const { category } = req?.body || req?.query
         const product = await productModel.find({ category })
@@ -20,4 +20,3 @@ const getCategoryWiseProduct = async(req,res)=>{
     }
 }
 
-module.exports = getCategoryWiseProduct

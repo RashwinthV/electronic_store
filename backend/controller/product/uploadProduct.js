@@ -4,12 +4,10 @@ const productModel = require("../../models/productModel")
 async function UploadProductController(req,res){
     try{
         const email = req.params.email || req.query.email; 
-        localStorage.setItem('email',email)
-        if(!uploadProductPermission()){
-            throw new Error("Permission denied")
-        }
-    
-        const uploadProduct = new productModel(req.body)
+        if(!email){
+            throw new Error("Email not found")
+        }       
+        const uploadProduct = new productModel(req.body)        
         const saveProduct = await uploadProduct.save()
 
         res.status(201).json({
@@ -18,8 +16,10 @@ async function UploadProductController(req,res){
             success : true,
             data : saveProduct
         })
-
+   
     }catch(err){
+        console.log(err);
+        
         res.status(400).json({
             message : err.message || err,
             error : true,

@@ -25,13 +25,12 @@ const handleCallback = async (req, res) => {
     if (!Array.isArray(users) || users.length === 0) {
       return res.status(404).json({ success: false, message: "No users found in Keycloak." });
     }
-    let newUsers = []; // To store newly added users
+    let newUsers = []; 
 
-    // Loop through each user
     for (const userData of users) {
       if (!userData.email) {
         console.warn(`Skipping user ${userData.username} due to missing email.`);
-        continue; // Skip users without an email
+        continue; 
       }
 
       const existingUser = await userModel.findOne({ email: userData.email });

@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { setUserDetails } from "../store/userSlice"; // Ensure correct path
-import SummaryApi from "../common"; // Ensure correct import
+import { setUserDetails } from "../store/userSlice";
+import SummaryApi from "../common";
 import { toast } from "react-toastify";
 
 function Profile() {
   const dispatch = useDispatch();
   const [user, setUser] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null); 
+  const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
   const [editMode, setEditMode] = useState(false);
+  const [activeImage, setActiveImage] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,42 +19,62 @@ function Profile() {
     password: "",
     confirmPassword: "",
     changePassword: false,
+    addresses: {
+      address: "",
+      city: "",
+      postalCode: "",
+      country: "",
+    },
   });
 
-  const userId = localStorage.getItem("email"); // Ensure this is valid
+  const userId = localStorage.getItem("email");
 
-  useEffect(() => {
+  const fetchUserDetails = useCallback(async () => {
     if (!userId) return;
 
-    const fetchUserDetails = async () => {
-      try {
-        const apiUrl = `${
-          SummaryApi.current_user.url
-        }?email=${encodeURIComponent(userId)}`;
-        const response = await fetch(apiUrl, {
-          method: SummaryApi.current_user.method,
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
+    try {
+      const apiUrl = `${SummaryApi.current_user.url}?email=${encodeURIComponent(userId)}`;
+      const response = await fetch(apiUrl, {
+        method: SummaryApi.current_user.method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
 
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-
-        const dataApi = await response.json();
-        if (dataApi) {
-          dispatch(setUserDetails(dataApi));
-          setUser(dataApi); // State updates asynchronously
-        }
-      } catch (error) {
-        console.error("Failed to fetch user details:", error);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-    };
 
-    fetchUserDetails(); // Call the function inside useEffect
+      const dataApi = await response.json();
+      if (dataApi) {
+        dispatch(setUserDetails(dataApi));
+        setUser(dataApi);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user details:", error);
+    }
   }, [userId, dispatch]);
 
-  // 🛠 Fix: Sync `formData` with `user` using useEffect
+  useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
+
+  useEffect(() => {
+    if (user && user.profilePic?.length > 0) {
+      try {
+        const imageUrl = user.profilePic;
+        if (imageUrl) {
+          const url = new URL(imageUrl);
+          const fileId = url.searchParams.get("id");
+          setActiveImage(fileId ? `${process.env.REACT_APP_IMAGE_URL}/proxy-image?fileId=${fileId}` : imageUrl);
+        }
+      } catch (error) {
+        console.error("Invalid image URL:", error);
+      }
+    }
+  }, [user]);
+  console.log(user);
+  
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -62,223 +84,230 @@ function Profile() {
         password: "",
         confirmPassword: "",
         changePassword: false,
+        addresses: user.addresses || {
+          address: "",
+          city: "",
+          postalCode: "",
+          country: "",
+        },
       });
     }
-  }, [user]); // Runs only when `user` is updated
+  }, [user]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleAddressChange = (e) => {
+    setFormData({
+      ...formData,
+      addresses: {
+        ...formData.addresses,
+        [e.target.name]: e.target.value,
+      },
+    });
+  };
+let userid=localStorage.getItem("email")
   const handleUpdate = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast.info("Name and email are required!");
+      toast.info("Name and Email are required!");
       return;
     }
 
-    if (
-      formData.changePassword &&
-      formData.password !== formData.confirmPassword
-    ) {
-toast.error("Passwords do not match!")  
-    return;
+    if (formData.changePassword) {
+      if (!formData.password || !formData.confirmPassword) {
+        toast.error("Please enter and confirm the new password!");
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        toast.error("Passwords do not match!");
+        return;
+      }
     }
 
     try {
-      const apiUrl = `${SummaryApi.current_user.url}?email=${encodeURIComponent(
-        userId
-      )}`;
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/user/?email=${encodeURIComponent(userid)}`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
+      console.log(response);
+      
       if (response.ok) {
         const updatedUser = await response.json();
         setUser(updatedUser);
         setEditMode(false);
-        toast.success("Profille updated successfully");
+        fetchUserDetails()
+        toast.success("Profile updated successfully");
       } else {
-        toast.error("Update failed please try again!");
+        toast.error("Update failed, please try again!");
       }
     } catch (error) {
       console.error("Error updating user:", error);
     }
   };
-  const handleFileInputChange = (e) => {
-    const file = e.target.files[0];
-    setSelectedFile(file); // Update the selected file
-  };
 
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click(); // Trigger file input click if ref is set
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please select an image first!");
+      return;
+    }
+
+    const formDataUpload = new FormData();
+    formDataUpload.append("file", selectedFile);
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_IMAGE_URL}/uploadimage/user`, {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setFormData({ ...formData, profilePic: data.url });
+        toast.success("Profile picture uploaded successfully!");
+      } else {
+        toast.error("Image upload failed. Please try again!");
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      toast.error("Image upload error!");
     }
   };
+
   if (!user) {
     return <div>Loading...</div>;
   }
+
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-4 text-center">
-      <label htmlFor="uploadImageInput">
-        <div
-          className="p-2 bg-slate-100  rounded h-32 w-full flex justify-center items-center cursor-pointer"
-          onClick={handleUploadClick} // Click to open file input
-        >
-          {editMode ? (
-            <div className="p-2 bg-slate-200 border rounded h-32 w-full flex justify-center items-center cursor-pointer gap-2">
-              <span className="text-4xl">
-                <svg
-                  stroke="currentColor"
-                  fill="currentColor"
-                  strokeWidth="0"
-                  viewBox="0 0 640 512"
-                  height="1em"
-                  width="1em"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M537.6 226.6c4.1-10.7 6.4-22.4 6.4-34.6 0-53-43-96-96-96-19.7 0-38.1 6-53.3 16.2C367 64.2 315.3 32 256 32c-88.4 0-160 71.6-160 160 0 2.7.1 5.4.2 8.1C40.2 219.8 0 273.2 0 336c0 79.5 64.5 144 144 144h368c70.7 0 128-57.3 128-128 0-61.9-44-113.6-102.4-125.4zM393.4 288H328v112c0 8.8-7.2 16-16 16h-48c-8.8 0-16-7.2-16-16V288h-65.4c-14.3 0-21.4-17.2-11.3-27.3l105.4-105.4c6.2-6.2 16.4-6.2 22.6 0l105.4 105.4c10.1 10.1 2.9 27.3-11.3 27.3z"></path>
-                </svg>
-              </span>
-              <p className="text-sm">Upload Profile Picture</p>
-              {/* Hidden file input */}
-              <input
-                type="file"
-                id="uploadImageInput"
-                className="hidden"
-                accept="image/*"
-                ref={fileInputRef} // Reference to file input
-                onChange={handleFileInputChange} // File change handler
-              />
-            </div>
-          ) : (
-            // When not in edit mode, show the uploaded image or default image
-            <div>
-              {selectedFile ? (
+    <div className="container mx-auto mt-5 mb-5 p-6 max-w-lg bg-white shadow-lg rounded-lg">
+      {/* Profile Picture Upload */}
+      <div className="mb-6 text-center">
+        <label htmlFor="uploadImageInput">
+          <div className="relative p-3 bg-gray-200 rounded-full h-32 w-32 mx-auto flex justify-center items-center cursor-pointer hover:bg-gray-300 transition duration-300">
+            {editMode ? (
+              <div className="flex flex-col justify-center items-center gap-2">
+                <span className="text-5xl">📷</span>
+                <p className="text-xs text-gray-600">Upload Profile Picture</p>
+                <input
+                  type="file"
+                  id="uploadImageInput"
+                  className="hidden"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={(e) => setSelectedFile(e.target.files[0])}
+                />
+              </div>
+            ) : (
+              user.profilePic && (
                 <img
-                  src={URL.createObjectURL(selectedFile)}
+                  src={activeImage}
                   alt="Profile"
-                  width="100"
-                  height="100"
-                  className="rounded-full mx-auto mt-4"
+                  className="w-full h-full object-cover rounded-full border-4 border-gray-300"
                 />
-              ) : (
-                <img
-                  width="48"
-                  height="48"
-                  src="https://img.icons8.com/color/48/test-account.png"
-                  alt="test-account"
-                  className="mx-auto mt-4"
-                />
-              )}
-            </div>
-          )}
-        </div>
-      </label>
-    </div>
-
-
+              )
+            )}
+          </div>
+        </label>
+        {editMode && selectedFile && (
+          <button
+            onClick={handleFileUpload}
+            className="mt-3 bg-indigo-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-indigo-600 transition duration-300"
+          >
+            Upload Image
+          </button>
+        )}
+      </div>
   
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Name:</label>
-        {editMode ? (
+      {/* User Info */}
+      <div className="mb-5">
+        <label className="block text-gray-700 font-semibold mb-1">Name:</label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleInputChange}
+          className={`border rounded-lg w-full py-2 px-4 text-gray-700 shadow-sm ${
+            editMode ? "border-blue-400 focus:ring-2 focus:ring-blue-300" : "bg-gray-100"
+          }`}
+          disabled={!editMode}
+        />
+      </div>
+  
+      <div className="mb-5">
+        <label className="block text-gray-700 font-semibold mb-1">Email:</label>
+        <input
+          type="email"
+          name="email"
+          value={formData.email}
+          className="border rounded-lg w-full py-2 px-4 bg-gray-100 shadow-sm text-gray-500"
+          disabled
+        />
+      </div>
+  
+      {/* Address Fields */}
+      {Object.keys(formData.addresses).map((key) => (
+        <div key={key} className="mb-5">
+          <label className="block text-gray-700 font-semibold mb-1">
+            {key.charAt(0).toUpperCase() + key.slice(1)}:
+          </label>
           <input
             type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            name={key}
+            value={formData.addresses[key]}
+            onChange={handleAddressChange}
+            className={`border rounded-lg w-full py-2 px-4 shadow-sm ${
+              editMode ? "border-blue-400 focus:ring-2 focus:ring-blue-300" : "bg-gray-100"
+            }`}
+            disabled={!editMode}
           />
-        ) : (
-          <p className="text-gray-700">{user.name}</p>
-        )}
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Email:</label>
-        {editMode ? (
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          />
-        ) : (
-          <p className="text-gray-700">{user.email}</p>
-        )}
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Login</label>
-        <p className="text-gray-700">{user.login || "Admin"}</p>
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Role</label>
-        <p className="text-gray-700">{user.role}</p>
-      </div>
-  
-      {editMode && (
-        <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">
-            <input
-              type="checkbox"
-              onChange={() =>
-                setFormData({
-                  ...formData,
-                  changePassword: !formData.changePassword,
-                })
-              }
-              className="mr-2"
-            />
-            Change Password?
-          </label>
-          {formData.changePassword && (
-            <>
-              <div className="mb-4">
-                <label className="block text-gray-700 font-bold mb-2">Password:</label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 font-bold mb-2">Confirm Password:</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-            </>
-          )}
         </div>
+      ))}
+  
+      {/* Change Password */}
+      {editMode && (
+        <>
+          <input
+            type="password"
+            name="password"
+            placeholder="New Password"
+            className="border rounded-lg w-full py-2 px-4 mt-3 shadow-sm focus:ring-2 focus:ring-blue-300"
+            onChange={handleInputChange}
+          />
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            className="border rounded-lg w-full py-2 px-4 mt-3 shadow-sm focus:ring-2 focus:ring-blue-300"
+            onChange={handleInputChange}
+          />
+        </>
       )}
   
-      {editMode ? (
-        <button
-          onClick={handleUpdate}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        >
-          Save Changes
-        </button>
-      ) : (
-        <button
-          onClick={() => setEditMode(true)}
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        >
-          Edit Profile
-        </button>
-      )}
+      {/* Buttons */}
+      <div className="flex justify-center gap-4 mt-5">
+        {editMode ? (
+          <button
+            onClick={handleUpdate}
+            className="bg-blue-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-600 transition duration-300"
+          >
+            Save Changes
+          </button>
+        ) : (
+          <button
+            onClick={() => setEditMode(true)}
+            className="bg-green-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-green-600 transition duration-300"
+          >
+            Edit Profile
+          </button>
+        )}
+      </div>
     </div>
   );
-  
   
 }
 

@@ -2,20 +2,19 @@ const axios = require("axios");
 const userModel = require("../../models/userModel");
 const qs = require("qs");
 
-const KEYCLOAK_URL =
-  "http://localhost:8080/realms/ecom/protocol/openid-connect";
+const KEYCLOAK_URL =process.env.KEYCLOAK_URL
 const CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID;
 const CLIENT_SECRET = process.env.KEYCLOAK_CLIENT_SECRET;
-const REDIRECT_URI = "http://localhost:8000/api/callback"; // This must match Keycloak's redirect URI
-const KEYCLOAK_BASE_URL = "http://localhost:8080";
+const REDIRECT_URI = process.env.REDIRECT_URI 
+const KEYCLOAK_BASE_URL =process.env.KEYCLOAK_BASE_URL
 const REALM = "ecom";
 
 // Keycloak Admin Credentials
-const ADMIN_REALM = "master";
-const ADMIN_USERNAME = "rashwinth";
-const ADMIN_PASSWORD = "admin";
-const ADMIN_CLIENT_ID = "admin-cli";
-const ADMIN_CLIENT_SECRET = "ensYvPNqaqYgU5I9Fcmz1aijLTg4lE0E";
+const ADMIN_REALM =process.env.ADMIN_REALM
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME
+const ADMIN_PASSWORD =process.env.ADMIN_PASSWORD
+const ADMIN_CLIENT_ID = process.env.ADMIN_CLIENT_ID
+const ADMIN_CLIENT_SECRET =process.env.ADMIN_CLIENT_SECRET
 
 exports.loginProvider = (req, res) => {
   const { provider } = req.params;
@@ -66,7 +65,6 @@ exports.call = async (req, res) => {
     );
 
     const user = userInfoResponse.data;
-    console.log("Fetched user data:", user);
 
     const adminResponse = await axios.post(
       `${KEYCLOAK_BASE_URL}/realms/${ADMIN_REALM}/protocol/openid-connect/token`,
@@ -100,7 +98,6 @@ exports.call = async (req, res) => {
     }
 
     const existingUser = await userModel.findOne({ email: user.email });
-console.log(provider);
 
     if (!existingUser) {
       const newUser = new userModel({
@@ -125,3 +122,4 @@ console.log(provider);
     });
   }
 };
+ 

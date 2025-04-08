@@ -1,6 +1,6 @@
 const productModel = require("../../models/productModel")
 
-const searchProduct = async(req,res)=>{
+exports.searchProduct = async(req,res)=>{
     try{
         const query = req.query.q 
 
@@ -33,4 +33,3 @@ const searchProduct = async(req,res)=>{
     }
 }
 
-module.exports = searchProduct

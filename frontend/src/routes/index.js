@@ -1,20 +1,28 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "../App";
-import Home from "../pages/Home";
-import Login from "../pages/Login";
-import ForgotPassowrd from "../pages/ForgotPassowrd";
-import SignUp from "../pages/SignUp";
-import AdminPanel from "../pages/AdminPanel";
-import AllUsers from "../pages/AllUsers";
-import AllProducts from "../pages/AllProducts";
-import CategoryProduct from "../pages/CategoryProduct";
-import ProductDetails from "../pages/ProductDetails";
-import Cart from "../pages/Cart";
-import SearchProduct from "../pages/SearchProduct";
-import Privacy from "../pages/privacy";
-import Terms from "../pages/Terms";
-import Faq from "../pages/Faq";
+import Home from "../pages/Products/Home";
+import Login from "../pages/Login&register/Login";
+import ForgotPassowrd from "../pages/Login&register/ForgotPassowrd";
+import SignUp from "../pages/Login&register/SignUp";
+import AdminPanel from "../pages/Admin/AdminPanel";
+import AllUsers from "../pages/Admin/AllUsers";
+import AllProducts from "../pages/Admin/AllProducts";
+import CategoryProduct from "../pages/Products/CategoryProduct";
+import ProductDetails from "../pages/Products/ProductDetails";
+import Cart from "../pages/Products/Cart";
+import SearchProduct from "../pages/Products/SearchProduct";
+import Privacy from "../pages/Footer/privacy";
+import Terms from "../pages/Footer/Terms";
+import Faq from "../pages/Footer/Faq";
 import Profile from "../pages/profile";
+import PaymentMethod from "../pages/Products/PayementMethod";
+import AboutUs from "../pages/Footer/About";
+import Contact from "../pages/Footer/Contact";
+import OrdersPage from "../pages/Products/Orders";
+import OrderDetailsPage from "../pages/Products/orderDetails";
+import AdminOrders from "../pages/Admin/allOrders";
+import AdminDashboard from "../pages/Admin/adminDashboard";
+import UpdateStock from "../pages/Admin/UpdateStock";
 
 const router = createBrowserRouter([
   {
@@ -46,6 +54,10 @@ const router = createBrowserRouter([
         element: <ProductDetails />,
       },
       {
+        path: "cart/product/:id",
+        element: <ProductDetails />,
+      },
+      {
         path: "cart",
         element: <Cart />,
       },
@@ -58,6 +70,10 @@ const router = createBrowserRouter([
         element: <AdminPanel />,
         children: [
           {
+            path: "Dashboard",
+            element: <AdminDashboard />,
+          },
+          {
             path: "all-users",
             element: <AllUsers />,
           },
@@ -65,7 +81,23 @@ const router = createBrowserRouter([
             path: "all-products",
             element: <AllProducts />,
           },
+          {
+            path: "orders",
+            element: <AdminOrders />,
+          },
+          {
+            path: "inventory",
+            element: <UpdateStock />,
+          },
         ],
+      },
+      {
+        path: "/about",
+        element: <AboutUs />,
+      },
+      {
+        path: "/contact",
+        element: <Contact />,
       },
       {
         path: "privacy&policy",
@@ -81,6 +113,18 @@ const router = createBrowserRouter([
       {
         path:"/profile",
         element:<Profile/>
+      },
+      {
+        path:"/paymentMethod",
+        element:<PaymentMethod/>
+      },
+      {
+        path:"/orders",
+        element:<OrdersPage/>
+      },
+      {
+        path:"/orders-details/:orderId",
+        element:<OrderDetailsPage/>
       },
     ],
   },

@@ -15,7 +15,6 @@ const initialState = {
     },
   })
   
-  // Action creators are generated for each case reducer function
   export const { setUserDetails } = userSlice.actions
   
   export default userSlice.reducer

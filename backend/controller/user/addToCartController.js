@@ -1,48 +1,71 @@
-const addToCartModel = require("../../models/cartProduct")
+const addToCartModel = require("../../models/cartProduct");
+const productModel = require("../../models/productModel");
 
-const addToCartController = async(req,res)=>{
-    try{
-        const { productId } = req?.body
-        const currentUser = req.userId
+exports.addToCartController = async (req, res) => {
+  try {
+    const { productId, userId } = req.body;
 
-        const isProductAvailable = await addToCartModel.findOne({ productId })
-
-        console.log("isProductAvailabl   ",isProductAvailable)
-
-        if(isProductAvailable){
-            return res.json({
-                message : "Already exits in Add to cart",
-                success : false,
-                error : true
-            })
-        }
-
-        const payload  = {
-            productId : productId,
-            quantity : 1,
-            userId : currentUser,
-        }
-
-        const newAddToCart = new addToCartModel(payload)
-        const saveProduct = await newAddToCart.save()
-
-
-        return res.json({
-            data : saveProduct,
-            message : "Product Added in Cart",
-            success : true,
-            error : false
-        })
-        
-
-    }catch(err){
-        res.json({
-            message : err?.message || err,
-            error : true,
-            success : false
-        })
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+        success: false,
+        error: true,
+      });
     }
-}
 
+    let cart = await addToCartModel.findOne({ userId, placed: false });
 
-module.exports = addToCartController
+    if (!cart) {
+      cart = new addToCartModel({
+        userId,
+        items: [],
+        Totalquantity: 0,
+      });
+    }
+
+    const existingProduct = cart.items.find(
+      (item) => item.productId.toString() === productId
+    );
+
+    if (existingProduct) {
+      return res.json({
+        message: "Product already in cart",
+        success: false,
+        error: true,
+      });
+    }
+    const product = await productModel.findById(productId, "stock");
+    if (product.stock > 0) {
+      cart.items.push({ productId, quantity: 1 });
+
+      cart.Totalquantity = cart.items.reduce(
+        (total, item) => total + item.quantity,
+        0
+      );
+
+      await cart.save();
+
+      return res.json({
+        message: "Product added to cart",
+        success: true,
+        error: false,
+        data: cart,
+      });
+    } else {
+      return res.json({
+        message: "Product out of stock",
+        success: false,
+        error: true,
+      });
+    }
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: err?.message || "Internal Server Error",
+      error: true,
+      success: false,
+    });
+  }
+};
+
