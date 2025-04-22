@@ -55,7 +55,7 @@ const OrderSchema = new mongoose.Schema(
       city: { type: String, required: true },
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
-      phoneNumber: { type: String, required: true },
+      phoneNo: { type: String, required: true },
     },
     orderDate:{type:Date,required:true},
     createdAt: {

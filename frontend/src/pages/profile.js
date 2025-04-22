@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { setUserDetails } from "../store/userSlice";
 import SummaryApi from "../common";
 import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function Profile() {
   const dispatch = useDispatch();
@@ -11,6 +12,8 @@ function Profile() {
   const fileInputRef = useRef(null);
   const [editMode, setEditMode] = useState(false);
   const [activeImage, setActiveImage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -18,13 +21,13 @@ function Profile() {
     profilePic: "",
     password: "",
     confirmPassword: "",
-    changePassword: false,
     addresses: {
       address: "",
       city: "",
       postalCode: "",
       country: "",
     },
+    phoneNo:""
   });
 
   const userId = localStorage.getItem("email");
@@ -33,7 +36,9 @@ function Profile() {
     if (!userId) return;
 
     try {
-      const apiUrl = `${SummaryApi.current_user.url}?email=${encodeURIComponent(userId)}`;
+      const apiUrl = `${SummaryApi.current_user.url}?email=${encodeURIComponent(
+        userId
+      )}`;
       const response = await fetch(apiUrl, {
         method: SummaryApi.current_user.method,
         credentials: "include",
@@ -57,6 +62,7 @@ function Profile() {
   useEffect(() => {
     fetchUserDetails();
   }, [fetchUserDetails]);
+  
 
   useEffect(() => {
     if (user && user.profilePic?.length > 0) {
@@ -65,15 +71,17 @@ function Profile() {
         if (imageUrl) {
           const url = new URL(imageUrl);
           const fileId = url.searchParams.get("id");
-          setActiveImage(fileId ? `${process.env.REACT_APP_IMAGE_URL}/proxy-image?fileId=${fileId}` : imageUrl);
+          setActiveImage(
+            fileId
+              ? `${process.env.REACT_APP_IMAGE_URL}/proxy-image?fileId=${fileId}`
+              : imageUrl
+          );
         }
       } catch (error) {
         console.error("Invalid image URL:", error);
       }
     }
   }, [user]);
-  console.log(user);
-  
 
   useEffect(() => {
     if (user) {
@@ -83,16 +91,17 @@ function Profile() {
         profilePic: user.profilePic || "",
         password: "",
         confirmPassword: "",
-        changePassword: false,
         addresses: user.addresses || {
           address: "",
           city: "",
           postalCode: "",
           country: "",
         },
+        phoneNo: user.phoneNo || ""  
       });
     }
   }, [user]);
+  
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -107,43 +116,37 @@ function Profile() {
       },
     });
   };
-let userid=localStorage.getItem("email")
+  let userid = localStorage.getItem("email");
   const handleUpdate = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
       toast.info("Name and Email are required!");
       return;
     }
 
-    if (formData.changePassword) {
-      if (!formData.password || !formData.confirmPassword) {
-        toast.error("Please enter and confirm the new password!");
-        return;
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        toast.error("Passwords do not match!");
-        return;
-      }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
     }
 
     try {
-      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/user/?email=${encodeURIComponent(userid)}`;
+      const apiUrl = `${
+        process.env.REACT_APP_BACKEND_URL
+      }/user/?email=${encodeURIComponent(userid)}`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      console.log(response);
-      
       if (response.ok) {
         const updatedUser = await response.json();
         setUser(updatedUser);
         setEditMode(false);
-        fetchUserDetails()
+        fetchUserDetails();
         toast.success("Profile updated successfully");
       } else {
-        toast.error("Update failed, please try again!");
+        const errorData = await response.json();
+        toast.error(errorData.message || "Update failed, please try again!");
       }
     } catch (error) {
       console.error("Error updating user:", error);
@@ -160,10 +163,13 @@ let userid=localStorage.getItem("email")
     formDataUpload.append("file", selectedFile);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_IMAGE_URL}/uploadimage/user`, {
-        method: "POST",
-        body: formDataUpload,
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_IMAGE_URL}/uploadimage/user`,
+        {
+          method: "POST",
+          body: formDataUpload,
+        }
+      );
 
       const data = await response.json();
 
@@ -178,6 +184,7 @@ let userid=localStorage.getItem("email")
       toast.error("Image upload error!");
     }
   };
+  
 
   if (!user) {
     return <div>Loading...</div>;
@@ -222,7 +229,7 @@ let userid=localStorage.getItem("email")
           </button>
         )}
       </div>
-  
+
       {/* User Info */}
       <div className="mb-5">
         <label className="block text-gray-700 font-semibold mb-1">Name:</label>
@@ -232,12 +239,14 @@ let userid=localStorage.getItem("email")
           value={formData.name}
           onChange={handleInputChange}
           className={`border rounded-lg w-full py-2 px-4 text-gray-700 shadow-sm ${
-            editMode ? "border-blue-400 focus:ring-2 focus:ring-blue-300" : "bg-gray-100"
+            editMode
+              ? "border-blue-400 focus:ring-2 focus:ring-blue-300"
+              : "bg-gray-100"
           }`}
           disabled={!editMode}
         />
       </div>
-  
+
       <div className="mb-5">
         <label className="block text-gray-700 font-semibold mb-1">Email:</label>
         <input
@@ -248,7 +257,7 @@ let userid=localStorage.getItem("email")
           disabled
         />
       </div>
-  
+
       {/* Address Fields */}
       {Object.keys(formData.addresses).map((key) => (
         <div key={key} className="mb-5">
@@ -261,33 +270,72 @@ let userid=localStorage.getItem("email")
             value={formData.addresses[key]}
             onChange={handleAddressChange}
             className={`border rounded-lg w-full py-2 px-4 shadow-sm ${
-              editMode ? "border-blue-400 focus:ring-2 focus:ring-blue-300" : "bg-gray-100"
+              editMode
+                ? "border-blue-400 focus:ring-2 focus:ring-blue-300"
+                : "bg-gray-100"
             }`}
             disabled={!editMode}
           />
         </div>
       ))}
-  
+       <div className="mb-5">
+        <label className="block text-gray-700 font-semibold mb-1">Phone no:</label>
+        <input
+          type="text"
+          name="phoneNo"
+          value={formData.phoneNo}
+          onChange={handleInputChange}
+          className={`border rounded-lg w-full py-2 px-4 text-gray-700 shadow-sm ${
+            editMode
+              ? "border-blue-400 focus:ring-2 focus:ring-blue-300"
+              : "bg-gray-100"
+          }`}
+          disabled={!editMode}
+        />
+      </div>
+
+
       {/* Change Password */}
       {editMode && (
         <>
-          <input
-            type="password"
-            name="password"
-            placeholder="New Password"
-            className="border rounded-lg w-full py-2 px-4 mt-3 shadow-sm focus:ring-2 focus:ring-blue-300"
-            onChange={handleInputChange}
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            className="border rounded-lg w-full py-2 px-4 mt-3 shadow-sm focus:ring-2 focus:ring-blue-300"
-            onChange={handleInputChange}
-          />
+          {/* Password Field */}
+          <div className="relative mt-3">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="New Password"
+              className="border rounded-lg w-full py-2 px-4 shadow-sm focus:ring-2 focus:ring-blue-300"
+              onChange={handleInputChange}
+              value={formData.password}
+            />
+            <span
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-3 cursor-pointer text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}{" "}
+            </span>
+          </div>
+
+          {/* Confirm Password Field */}
+          <div className="relative mt-3">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              className="border rounded-lg w-full py-2 px-4 shadow-sm focus:ring-2 focus:ring-blue-300"
+              onChange={handleInputChange}
+              value={formData.confirmPassword}
+            />
+            <span
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-3 cursor-pointer text-gray-500 hover:text-gray-700"
+            >
+              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
         </>
       )}
-  
+
       {/* Buttons */}
       <div className="flex justify-center gap-4 mt-5">
         {editMode ? (
@@ -308,7 +356,6 @@ let userid=localStorage.getItem("email")
       </div>
     </div>
   );
-  
 }
 
 export default Profile;

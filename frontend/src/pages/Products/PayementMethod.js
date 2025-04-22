@@ -19,7 +19,7 @@ const PaymentMethod = () => {
     city: "",
     postalCode: "",
     country: "",
-    phoneNumber: "",
+    phoneNo: "",
   });
 
   const userid = localStorage.getItem("userId");
@@ -29,7 +29,7 @@ const PaymentMethod = () => {
     city: "",
     postalCode: "",
     country: "",
-    phoneNumber: "",
+    phoneNo: "",
   });
 
   // Fetch saved address from API
@@ -45,12 +45,20 @@ const PaymentMethod = () => {
       }
 
       const data = await response.json();
-      setSavedAddress(data.addresses);
+      console.log(data);
+
+      const savedAddress = {
+        ...data.addresses,
+        phoneNo: data.phoneNo,
+      };
+      setSavedAddress(savedAddress);
+      
       setUser(data);
     } catch (error) {
       console.error("Error fetching saved address:", error);
     }
   };
+console.log(savedAddress);
 
 
   // Fetch product images from cart
@@ -131,7 +139,7 @@ const PaymentMethod = () => {
     }).flat();
   
     savedAddress.fullName = user.name;
-    savedAddress.phoneNumber = user.phoneNumber;
+    savedAddress.phoneNo = user.phoneNo;
   
     try {
       const response = await fetch(
@@ -156,6 +164,7 @@ const PaymentMethod = () => {
       const data = await response.json();
       if (response.ok) {
         toast.success("Order placed successfully!");
+        localStorage.setItem("cartCount",0)
         navigate("/cart");
       } else {
         toast.error(data.message || "Failed to place order.");
@@ -224,7 +233,7 @@ const PaymentMethod = () => {
                     {savedAddress.country}
                   </p>
                   <p>Postal Code: {savedAddress.postalCode}</p>
-                  <p>Phone: {savedAddress.phoneNumber}</p>
+                  <p>Phone: {savedAddress.phoneNo}</p>
                 </label>
               </div>
 

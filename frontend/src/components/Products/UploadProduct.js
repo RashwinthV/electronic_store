@@ -56,7 +56,6 @@ const UploadProduct = ({ onClose, fetchData }) => {
     newProductImage.splice(index, 1);
     setData((prev) => ({ ...prev, productImage: newProductImage }));
   };
-  console.log(data.productImage);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

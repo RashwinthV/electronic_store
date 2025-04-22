@@ -73,7 +73,16 @@ async function userSignUpController(req, res) {
       addresses = {},
     } = req.body;
 
-    if (!name || !email || !password || !addresses.address || !addresses.city || !addresses.postalCode || !addresses.country || !phoneNo) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !addresses.address ||
+      !addresses.city ||
+      !addresses.postalCode ||
+      !addresses.country ||
+      !phoneNo
+    ) {
       throw new Error("Please provide all required fields.");
     }
 
@@ -82,12 +91,17 @@ async function userSignUpController(req, res) {
       throw new Error("User already exists.");
     }
 
-    // Hash password
+    const passwordRegex = /^(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long and include at least one special character.",
+      });
+    }
+
     const salt = bcrypt.genSaltSync(10);
     const hashPassword = bcrypt.hashSync(password, salt);
     if (!hashPassword) throw new Error("Failed to hash password.");
 
-    // Split full name into first and last names for Keycloak
     const [firstName, ...lastParts] = name.split(" ");
     const lastName = lastParts.join(" ") || "";
 
@@ -112,7 +126,6 @@ async function userSignUpController(req, res) {
 
     const keycloakSuccess = await RegisterAuth(firstName, lastName, email, password);
     if (!keycloakSuccess) {
-      // Optional: Delete user from DB if Keycloak fails
       await userModel.findByIdAndDelete(savedUser._id);
       throw new Error("User registration failed in Keycloak.");
     }
@@ -123,6 +136,7 @@ async function userSignUpController(req, res) {
       data: savedUser,
       message: "User registered successfully!",
     });
+
   } catch (err) {
     console.error("Signup Error:", err.message);
     res.status(400).json({

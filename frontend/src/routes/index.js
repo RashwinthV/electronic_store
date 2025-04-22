@@ -23,6 +23,8 @@ import OrderDetailsPage from "../pages/Products/orderDetails";
 import AdminOrders from "../pages/Admin/allOrders";
 import AdminDashboard from "../pages/Admin/adminDashboard";
 import UpdateStock from "../pages/Admin/UpdateStock";
+import InventoryDashboard from "../pages/Admin/InventoryDashboard";
+import SalesAnalysis from "../pages/Admin/SalesAynalisis";
 
 const router = createBrowserRouter([
   {
@@ -78,15 +80,23 @@ const router = createBrowserRouter([
             element: <AllUsers />,
           },
           {
-            path: "all-products",
+            path: "sales-Analysis",
+            element: <SalesAnalysis />,
+          },
+          {
+            path: "inventory/all-products",
             element: <AllProducts />,
+          },
+          {
+            path: "inventory/dashboard",
+            element: <InventoryDashboard />,
           },
           {
             path: "orders",
             element: <AdminOrders />,
           },
           {
-            path: "inventory",
+            path: "inventory/manage-stock",
             element: <UpdateStock />,
           },
         ],

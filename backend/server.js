@@ -24,6 +24,7 @@ app.use("/api", router);
 app.use("/login/:provider", loginProvider);
 app.use("/uploadimage", Adminroute);
 app.use("/mail",emailroute)
+app.use('/admin',Adminroute)
 app.get("/proxy-image", async (req, res) => {
   const fileId = req.query.fileId;
 
@@ -46,10 +47,10 @@ app.get("/proxy-image", async (req, res) => {
     res.status(500).send("Error fetching image from Google Drive");
   }
 });
-
-
+ 
+  
 // sendStockReport();
-
+ 
 
 
 const PORT = 8000 || process.env.PORT;
